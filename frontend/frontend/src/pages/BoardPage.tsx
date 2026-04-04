@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { Tldraw, getSnapshot, loadSnapshot, Editor } from "tldraw";
 import "tldraw/tldraw.css";
 import { getBoard, updateBoard } from "../api/boards";
+import { API_BASE_URL } from "../api/client";
 
 type Board = {
   id: string;
@@ -10,6 +11,14 @@ type Board = {
   description?: string;
   content?: any;
 };
+
+type SyncState = "connecting" | "connected" | "reconnecting" | "disconnected";
+
+function getBoardWsUrl(boardId: string) {
+  const apiUrl = new URL(API_BASE_URL);
+  const wsProtocol = apiUrl.protocol === "https:" ? "wss:" : "ws:";
+  return `${wsProtocol}//${apiUrl.host}/ws/boards/${boardId}`;
+}
 
 export default function BoardPage() {
   const { id } = useParams();
@@ -22,6 +31,7 @@ export default function BoardPage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [syncState, setSyncState] = useState<SyncState>("disconnected");
 
   const editorRef = useRef<Editor | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
@@ -69,31 +79,66 @@ export default function BoardPage() {
   useEffect(() => {
     if (!id) return;
 
-    const socket = new WebSocket(`ws://127.0.0.1:8000/ws/boards/${id}`);
-    socketRef.current = socket;
+    let socket: WebSocket | null = null;
+    let reconnectTimeout: number | null = null;
+    let shouldReconnect = true;
+    let reconnectAttempts = 0;
 
-    socket.onmessage = (event) => {
-      if (!editorRef.current) return;
+    const connect = () => {
+      setSyncState(reconnectAttempts === 0 ? "connecting" : "reconnecting");
+      socket = new WebSocket(getBoardWsUrl(id));
+      socketRef.current = socket;
 
-      try {
-        const snapshot = JSON.parse(event.data);
-        isHydratingRef.current = true;
-        loadSnapshot(editorRef.current.store, snapshot);
-      } catch (err) {
-        console.error("Failed to apply remote canvas update", err);
-      } finally {
-        window.setTimeout(() => {
-          isHydratingRef.current = false;
-        }, 0);
-      }
+      socket.onopen = () => {
+        reconnectAttempts = 0;
+        setSyncState("connected");
+      };
+
+      socket.onmessage = (event) => {
+        if (!editorRef.current) return;
+
+        try {
+          const snapshot = JSON.parse(event.data);
+          isHydratingRef.current = true;
+          loadSnapshot(editorRef.current.store, snapshot);
+        } catch (err) {
+          console.error("Failed to apply remote canvas update", err);
+        } finally {
+          window.setTimeout(() => {
+            isHydratingRef.current = false;
+          }, 0);
+        }
+      };
+
+      socket.onerror = () => {
+        socket?.close();
+      };
+
+      socket.onclose = () => {
+        if (socketRef.current === socket) {
+          socketRef.current = null;
+        }
+
+        if (!shouldReconnect) {
+          setSyncState("disconnected");
+          return;
+        }
+
+        reconnectAttempts += 1;
+        const delay = Math.min(1000 * 2 ** Math.min(reconnectAttempts, 4), 10000);
+        setSyncState("reconnecting");
+        reconnectTimeout = window.setTimeout(connect, delay);
+      };
     };
 
-    socket.onerror = (event) => {
-      console.warn("Board sync socket error", event);
-    };
+    connect();
 
     return () => {
-      socket.close();
+      shouldReconnect = false;
+      if (reconnectTimeout) {
+        window.clearTimeout(reconnectTimeout);
+      }
+      socket?.close();
     };
   }, [id]);
 
@@ -180,6 +225,13 @@ export default function BoardPage() {
     await saveBoard(title, description);
   }
 
+  const syncColor =
+    syncState === "connected"
+      ? "green"
+      : syncState === "reconnecting" || syncState === "connecting"
+      ? "#996b00"
+      : "#555";
+
   return (
     <div style={{ maxWidth: 1200, margin: "20px auto", padding: "0 16px" }}>
       <p>
@@ -224,6 +276,9 @@ export default function BoardPage() {
 
               <div style={{ textAlign: "right" }}>
                 <p style={{ margin: 0 }}>{saving ? "Saving..." : "Saved"}</p>
+                <p style={{ margin: "4px 0 0", color: syncColor }}>
+                  Sync: {syncState}
+                </p>
                 {saveError ? (
                   <p style={{ margin: "4px 0 0", color: "red" }}>
                     {saveError}
