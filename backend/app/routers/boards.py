@@ -22,7 +22,7 @@ def create_board(
         title=data.title,
         description=data.description,
         owner_id=current_user.id,
-        content = None
+        content=None,
     )
     session.add(board)
     session.commit()
@@ -35,9 +35,7 @@ def list_my_boards(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    boards = session.exec(
-        select(Board).where(Board.owner_id == current_user.id)
-    ).all()
+    boards = session.exec(select(Board).where(Board.owner_id == current_user.id)).all()
     return boards
 
 
@@ -47,11 +45,7 @@ def get_board(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    board = (
-        db.query(Board)
-        .filter(Board.id == board_id, Board.owner_id == current_user.id)
-        .first()
-    )
+    board = db.query(Board).filter(Board.id == board_id).first()
 
     if not board:
         raise HTTPException(status_code=404, detail="Board not found")
@@ -66,10 +60,7 @@ def update_board(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    board = db.query(Board).filter(
-        Board.id == board_id,
-        Board.owner_id == current_user.id
-    ).first()
+    board = db.query(Board).filter(Board.id == board_id).first()
 
     if not board:
         raise HTTPException(status_code=404, detail="Board not found")
@@ -86,6 +77,7 @@ def update_board(
     db.commit()
     db.refresh(board)
     return board
+
 
 @router.delete("/{board_id}", status_code=status.HTTP_200_OK)
 def delete_board(

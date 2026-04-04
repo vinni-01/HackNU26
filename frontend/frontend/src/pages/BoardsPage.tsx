@@ -1,5 +1,6 @@
-import { FormEvent, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { createBoard, deleteBoard, getBoards } from "../api/boards";
 import { useAuth } from "../context/AuthContext";
 
@@ -11,9 +12,11 @@ type Board = {
 
 export default function BoardsPage() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const [boards, setBoards] = useState<Board[]>([]);
   const [title, setTitle] = useState("");
+  const [joinBoardId, setJoinBoardId] = useState("");
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -52,7 +55,6 @@ export default function BoardsPage() {
       setBoards((prev) => [newBoard, ...prev]);
       setTitle("");
     } catch (err: any) {
-      console.error("CREATE ERROR:", err?.response?.data || err);
       setError(err?.response?.data?.detail || "Failed to create board");
     } finally {
       setCreating(false);
@@ -60,15 +62,12 @@ export default function BoardsPage() {
   }
 
   async function handleDelete(id: string) {
-    const confirmed = window.confirm("Delete this board?");
-    if (!confirmed) return;
+    if (!window.confirm("Delete this board?")) return;
 
     try {
       setDeletingId(id);
       setError("");
-
       await deleteBoard(id);
-
       setBoards((prev) => prev.filter((board) => board.id !== id));
     } catch (err: any) {
       setError(err?.response?.data?.detail || "Failed to delete board");
@@ -77,89 +76,81 @@ export default function BoardsPage() {
     }
   }
 
-  return (
-    <div style={{ maxWidth: 900, margin: "40px auto", padding: "0 16px" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 24,
-        }}
-      >
-        <div>
-          <h1 style={{ marginBottom: 4 }}>Boards</h1>
-          <p style={{ margin: 0, color: "#666" }}>{user?.email}</p>
-        </div>
+  function handleConnectBoard(e: FormEvent) {
+    e.preventDefault();
+    const targetBoardId = joinBoardId.trim();
+    if (!targetBoardId) {
+      setError("Please provide a board id to connect");
+      return;
+    }
 
-        <button onClick={logout}>Logout</button>
+    setError("");
+    navigate(`/boards/${targetBoardId}`);
+  }
+
+  return (
+    <div className="page-shell">
+      <div className="toolbar">
+        <div>
+          <h1 className="page-title" style={{ marginBottom: 4 }}>
+            Boards
+          </h1>
+          <p className="muted">{user?.email}</p>
+        </div>
+        <button className="ghost-btn" onClick={logout}>
+          Logout
+        </button>
       </div>
 
-      <form onSubmit={handleCreate} style={{ marginBottom: 24 }}>
-        <input
-          type="text"
-          placeholder="Board title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          style={{
-            padding: 10,
-            width: 320,
-            marginRight: 8,
-            borderRadius: 8,
-            border: "1px solid #ccc",
-          }}
-        />
-        <button type="submit" disabled={creating}>
-          {creating ? "Creating..." : "Create board"}
-        </button>
-      </form>
+      <div className="glass-card" style={{ padding: 16, marginBottom: 16 }}>
+        <form onSubmit={handleCreate} className="form-row">
+          <input
+            className="input"
+            type="text"
+            placeholder="Board title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <button type="submit" disabled={creating}>
+            {creating ? "Creating..." : "Create board"}
+          </button>
+        </form>
 
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
+        <form onSubmit={handleConnectBoard} className="form-row" style={{ marginBottom: 0 }}>
+          <input
+            className="input"
+            type="text"
+            placeholder="Paste another user's board id"
+            value={joinBoardId}
+            onChange={(e) => setJoinBoardId(e.target.value)}
+          />
+          <button type="submit">Connect</button>
+        </form>
+      </div>
+
+      {error && <p className="error-text">{error}</p>}
 
       {loading ? (
-        <p>Loading boards...</p>
+        <p className="muted">Loading boards...</p>
       ) : boards.length === 0 ? (
-        <div
-          style={{
-            padding: 24,
-            border: "1px dashed #ccc",
-            borderRadius: 12,
-          }}
-        >
-          <p style={{ margin: 0 }}>No boards yet. Create your first one.</p>
+        <div className="glass-card" style={{ padding: 24 }}>
+          <p className="muted">No boards yet. Create your first one.</p>
         </div>
       ) : (
-        <div style={{ display: "grid", gap: 12 }}>
+        <div className="board-grid">
           {boards.map((board) => (
-            <div
-              key={board.id}
-              style={{
-                border: "1px solid #ddd",
-                borderRadius: 12,
-                padding: 16,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
+            <div key={board.id} className="glass-card board-item">
               <div>
-                <Link
-                  to={`/boards/${board.id}`}
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 600,
-                    textDecoration: "none",
-                  }}
-                >
+                <Link to={`/boards/${board.id}`} style={{ fontSize: 18, fontWeight: 700 }}>
                   {board.title}
                 </Link>
-
-                <p style={{ margin: "6px 0 0", color: "#666" }}>
+                <p className="muted" style={{ marginTop: 6 }}>
                   {board.description || "No description"}
                 </p>
               </div>
 
               <button
+                className="ghost-btn"
                 onClick={() => handleDelete(board.id)}
                 disabled={deletingId === board.id}
               >
