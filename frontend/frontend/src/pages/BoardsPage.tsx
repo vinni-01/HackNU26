@@ -1,5 +1,6 @@
-import { FormEvent, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { createBoard, deleteBoard, getBoards } from "../api/boards";
 import { useAuth } from "../context/AuthContext";
 
@@ -11,9 +12,11 @@ type Board = {
 
 export default function BoardsPage() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const [boards, setBoards] = useState<Board[]>([]);
   const [title, setTitle] = useState("");
+  const [joinBoardId, setJoinBoardId] = useState("");
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -77,6 +80,18 @@ export default function BoardsPage() {
     }
   }
 
+  function handleConnectBoard(e: FormEvent) {
+    e.preventDefault();
+    const targetBoardId = joinBoardId.trim();
+    if (!targetBoardId) {
+      setError("Please provide a board id to connect");
+      return;
+    }
+
+    setError("");
+    navigate(`/boards/${targetBoardId}`);
+  }
+
   return (
     <div style={{ maxWidth: 900, margin: "40px auto", padding: "0 16px" }}>
       <div
@@ -95,7 +110,7 @@ export default function BoardsPage() {
         <button onClick={logout}>Logout</button>
       </div>
 
-      <form onSubmit={handleCreate} style={{ marginBottom: 24 }}>
+      <form onSubmit={handleCreate} style={{ marginBottom: 12 }}>
         <input
           type="text"
           placeholder="Board title"
@@ -112,6 +127,23 @@ export default function BoardsPage() {
         <button type="submit" disabled={creating}>
           {creating ? "Creating..." : "Create board"}
         </button>
+      </form>
+
+      <form onSubmit={handleConnectBoard} style={{ marginBottom: 24 }}>
+        <input
+          type="text"
+          placeholder="Other user's board id"
+          value={joinBoardId}
+          onChange={(e) => setJoinBoardId(e.target.value)}
+          style={{
+            padding: 10,
+            width: 320,
+            marginRight: 8,
+            borderRadius: 8,
+            border: "1px solid #ccc",
+          }}
+        />
+        <button type="submit">Connect to board</button>
       </form>
 
       {error && <p style={{ color: "crimson" }}>{error}</p>}
