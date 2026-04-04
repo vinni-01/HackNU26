@@ -102,33 +102,43 @@ export default function BoardsPage() {
         </button>
       </div>
 
-      <div className="glass-card" style={{ padding: 16, marginBottom: 16 }}>
-        <form onSubmit={handleCreate} className="form-row">
-          <input
-            className="input"
-            type="text"
-            placeholder="Board title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-          <button type="submit" disabled={creating}>
-            {creating ? "Creating..." : "Create board"}
-          </button>
-        </form>
+      <form onSubmit={handleCreate} style={{ marginBottom: 12 }}>
+        <input
+          type="text"
+          placeholder="Board title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          style={{
+            padding: 10,
+            width: 320,
+            marginRight: 8,
+            borderRadius: 8,
+            border: "1px solid #ccc",
+          }}
+        />
+        <button type="submit" disabled={creating}>
+          {creating ? "Creating..." : "Create board"}
+        </button>
+      </form>
 
-        <form onSubmit={handleConnectBoard} className="form-row" style={{ marginBottom: 0 }}>
-          <input
-            className="input"
-            type="text"
-            placeholder="Paste another user's board id"
-            value={joinBoardId}
-            onChange={(e) => setJoinBoardId(e.target.value)}
-          />
-          <button type="submit">Connect</button>
-        </form>
-      </div>
+      <form onSubmit={handleConnectBoard} style={{ marginBottom: 24 }}>
+        <input
+          type="text"
+          placeholder="Other user's board id"
+          value={joinBoardId}
+          onChange={(e) => setJoinBoardId(e.target.value)}
+          style={{
+            padding: 10,
+            width: 320,
+            marginRight: 8,
+            borderRadius: 8,
+            border: "1px solid #ccc",
+          }}
+        />
+        <button type="submit">Connect to board</button>
+      </form>
 
-      {error && <p className="error-text">{error}</p>}
+      {error && <p style={{ color: "crimson" }}>{error}</p>}
 
       {loading ? (
         <p className="muted">Loading boards...</p>

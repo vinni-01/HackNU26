@@ -221,6 +221,17 @@ export default function BoardPage() {
     );
   }
 
+  async function handleSaveDetails() {
+    await saveBoard(title, description);
+  }
+
+  const syncColor =
+    syncState === "connected"
+      ? "green"
+      : syncState === "reconnecting" || syncState === "connecting"
+      ? "#996b00"
+      : "#555";
+
   return (
     <div className="page-shell">
       <p style={{ marginBottom: 14 }}>
@@ -255,11 +266,15 @@ export default function BoardPage() {
               <button onClick={() => void saveBoard(title, description)}>Save details</button>
 
               <div style={{ textAlign: "right" }}>
-                <span className="status-pill">{saving ? "Saving..." : "Saved"}</span>
-                <span className="status-pill" style={{ marginLeft: 8 }}>
+                <p style={{ margin: 0 }}>{saving ? "Saving..." : "Saved"}</p>
+                <p style={{ margin: "4px 0 0", color: syncColor }}>
                   Sync: {syncState}
-                </span>
-                {saveError ? <p className="error-text">{saveError}</p> : null}
+                </p>
+                {saveError ? (
+                  <p style={{ margin: "4px 0 0", color: "red" }}>
+                    {saveError}
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
