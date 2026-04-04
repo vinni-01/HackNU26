@@ -24,7 +24,9 @@ export default function BoardPage() {
   const [saveError, setSaveError] = useState("");
 
   const editorRef = useRef<Editor | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
   const saveTimeoutRef = useRef<number | null>(null);
+  const syncTimeoutRef = useRef<number | null>(null);
   const isHydratingRef = useRef(false);
 
   useEffect(() => {
@@ -57,6 +59,41 @@ export default function BoardPage() {
       if (saveTimeoutRef.current) {
         window.clearTimeout(saveTimeoutRef.current);
       }
+      if (syncTimeoutRef.current) {
+        window.clearTimeout(syncTimeoutRef.current);
+      }
+      socketRef.current?.close();
+    };
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const socket = new WebSocket(`ws://127.0.0.1:8000/ws/boards/${id}`);
+    socketRef.current = socket;
+
+    socket.onmessage = (event) => {
+      if (!editorRef.current) return;
+
+      try {
+        const snapshot = JSON.parse(event.data);
+        isHydratingRef.current = true;
+        loadSnapshot(editorRef.current.store, snapshot);
+      } catch (err) {
+        console.error("Failed to apply remote canvas update", err);
+      } finally {
+        window.setTimeout(() => {
+          isHydratingRef.current = false;
+        }, 0);
+      }
+    };
+
+    socket.onerror = (event) => {
+      console.warn("Board sync socket error", event);
+    };
+
+    return () => {
+      socket.close();
     };
   }, [id]);
 
@@ -98,6 +135,22 @@ export default function BoardPage() {
     }, 1000);
   }
 
+  function scheduleSync() {
+    if (!editorRef.current) return;
+    if (isHydratingRef.current) return;
+    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) return;
+
+    if (syncTimeoutRef.current) {
+      window.clearTimeout(syncTimeoutRef.current);
+    }
+
+    syncTimeoutRef.current = window.setTimeout(() => {
+      if (!editorRef.current) return;
+      const snapshot = getSnapshot(editorRef.current.store);
+      socketRef.current?.send(JSON.stringify(snapshot));
+    }, 150);
+  }
+
   function handleMount(editor: Editor) {
     editorRef.current = editor;
 
@@ -117,6 +170,7 @@ export default function BoardPage() {
     editor.store.listen(
       () => {
         scheduleSave();
+        scheduleSync();
       },
       { scope: "document", source: "user" }
     );
