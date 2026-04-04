@@ -15,8 +15,11 @@ class UserResponse(BaseModel):
     id: int
     email: EmailStr
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
+
+
+# Alias used by the /users router
+UserRead = UserResponse
 
 
 class TokenResponse(BaseModel):

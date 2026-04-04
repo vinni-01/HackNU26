@@ -1,17 +1,12 @@
-from pydantic import BaseModel, EmailStr
+"""
+app/schemas/auth.py — Auth-specific Pydantic models.
 
+These are kept separate from app/schemas/user.py for clarity.
+The canonical registration/login schema used by app/routers/auth.py
+is in app/schemas/user.py (UserCreate, UserLogin, TokenResponse).
+This module re-exports those for any code that imports from here.
+"""
 
-class RegisterRequest(BaseModel):
-    email: EmailStr
-    full_name: str
-    password: str
+from app.schemas.user import TokenResponse, UserCreate as RegisterRequest, UserLogin as LoginRequest
 
-
-class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str
-
-
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
+__all__ = ["RegisterRequest", "LoginRequest", "TokenResponse"]
