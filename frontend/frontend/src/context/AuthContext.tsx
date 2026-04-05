@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { getMe, login as loginApi, register as registerApi } from "../api/auth";
 
 type User = {
@@ -32,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    fetchMe();
+    void fetchMe();
   }, []);
 
   async function login(email: string, password: string) {
