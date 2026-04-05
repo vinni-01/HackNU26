@@ -160,7 +160,6 @@ export default function BoardPage() {
       const updated = await updateBoard(id, payload);
       setBoard(updated);
     } catch (err: any) {
-      console.error("Save failed:", err?.response?.data || err);
       setSaveError(err?.response?.data?.detail || "Failed to save board");
     } finally {
       setSaving(false);
@@ -168,8 +167,7 @@ export default function BoardPage() {
   }
 
   function scheduleSave() {
-    if (!id || !editorRef.current || !board) return;
-    if (isHydratingRef.current) return;
+    if (!id || !editorRef.current || !board || isHydratingRef.current) return;
 
     if (saveTimeoutRef.current) {
       window.clearTimeout(saveTimeoutRef.current);
@@ -181,9 +179,13 @@ export default function BoardPage() {
   }
 
   function scheduleSync() {
-    if (!editorRef.current) return;
-    if (isHydratingRef.current) return;
-    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) return;
+    if (
+      !editorRef.current ||
+      isHydratingRef.current ||
+      !socketRef.current ||
+      socketRef.current.readyState !== WebSocket.OPEN
+    )
+      return;
 
     if (syncTimeoutRef.current) {
       window.clearTimeout(syncTimeoutRef.current);
@@ -203,8 +205,6 @@ export default function BoardPage() {
       try {
         isHydratingRef.current = true;
         loadSnapshot(editor.store, board.content);
-      } catch (err) {
-        console.error("Failed to load snapshot", err);
       } finally {
         window.setTimeout(() => {
           isHydratingRef.current = false;
@@ -233,46 +233,37 @@ export default function BoardPage() {
       : "#555";
 
   return (
-    <div style={{ maxWidth: 1200, margin: "20px auto", padding: "0 16px" }}>
-      <p>
+    <div className="page-shell">
+      <p style={{ marginBottom: 14 }}>
         <Link to="/boards">← Back to boards</Link>
       </p>
 
       {loading ? (
-        <p>Loading board...</p>
+        <p className="muted">Loading board...</p>
       ) : error ? (
-        <p style={{ color: "red" }}>{error}</p>
+        <p className="error-text">{error}</p>
       ) : board ? (
         <>
-          <div style={{ marginBottom: 16 }}>
+          <div className="glass-card" style={{ padding: 16, marginBottom: 16 }}>
             <input
+              className="input"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Board title"
-              style={{
-                width: "100%",
-                fontSize: 28,
-                fontWeight: 700,
-                padding: 8,
-                marginBottom: 8,
-              }}
+              style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}
             />
 
             <textarea
+              className="textarea"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Board description"
               rows={2}
-              style={{
-                width: "100%",
-                padding: 8,
-                resize: "vertical",
-                marginBottom: 8,
-              }}
+              style={{ marginBottom: 10 }}
             />
 
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <button onClick={handleSaveDetails}>Save details</button>
+            <div className="toolbar" style={{ marginBottom: 0 }}>
+              <button onClick={() => void saveBoard(title, description)}>Save details</button>
 
               <div style={{ textAlign: "right" }}>
                 <p style={{ margin: 0 }}>{saving ? "Saving..." : "Saved"}</p>
@@ -288,19 +279,12 @@ export default function BoardPage() {
             </div>
           </div>
 
-          <div
-            style={{
-              height: "72vh",
-              border: "1px solid #ccc",
-              borderRadius: 12,
-              overflow: "hidden",
-            }}
-          >
+          <div className="canvas-frame glass-card">
             <Tldraw onMount={handleMount} />
           </div>
         </>
       ) : (
-        <p>Board not found</p>
+        <p className="muted">Board not found</p>
       )}
     </div>
   );
