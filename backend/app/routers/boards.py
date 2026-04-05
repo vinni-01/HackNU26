@@ -39,6 +39,15 @@ def list_my_boards(
     return boards
 
 
+@router.get("/discover", response_model=list[BoardResponse])
+def discover_boards(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    boards = db.query(Board).order_by(Board.created_at.desc()).all()
+    return boards
+
+
 @router.get("/{board_id}", response_model=BoardResponse)
 def get_board(
     board_id: str,
