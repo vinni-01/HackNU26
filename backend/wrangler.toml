@@ -1,0 +1,27 @@
+name = "tldraw-sync-worker"
+main = "index.ts" # Or your specific entry point
+compatibility_date = "2026-04-04"
+
+# Durable Objects (The Real-Time Sync Engine)
+[[durable_objects.bindings]]
+name = "TLDRAW_SYNC"
+class_name = "TldrawSyncDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["TldrawSyncDO"]
+
+# R2 Buckets (Image/Video Storage)
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "hack-nu" 
+
+
+# Vectorize (Semantic Search Index)
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "hacknu-index-prod" # This becomes your VECTORIZE_INDEX variable
+
+[vars]
+# This is the public base URL for your R2 bucket
+R2_PUBLIC_BASE = "https://pub-f3f65e66d72e4ea2acec3a5bb969e465.r2.dev" 
