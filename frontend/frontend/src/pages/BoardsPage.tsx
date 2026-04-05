@@ -157,6 +157,9 @@ export default function BoardsPage() {
                 <p className="muted" style={{ marginTop: 6 }}>
                   {board.description || "No description"}
                 </p>
+                <p className="muted" style={{ marginTop: 6, fontSize: 13 }}>
+                  Board ID: <code>{board.id}</code>
+                </p>
               </div>
 
               <button
