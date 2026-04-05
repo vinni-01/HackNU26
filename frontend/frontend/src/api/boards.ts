@@ -7,6 +7,7 @@ export type Board = {
   title: string
   description: string
   content: any
+  owner_id?: number
 }
 
 export type CreateBoardPayload = {
@@ -22,6 +23,11 @@ export type UpdateBoardPayload = {
 
 export async function getBoards(): Promise<Board[]> {
   const res = await api.get("/boards")
+  return res.data
+}
+
+export async function getDiscoverBoards(): Promise<Board[]> {
+  const res = await api.get("/boards/discover")
   return res.data
 }
 
